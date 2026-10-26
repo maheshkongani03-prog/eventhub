@@ -1,0 +1,34 @@
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext.jsx';
+
+export default function Navbar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate('/');
+  }
+
+  return (
+    <header className="navbar">
+      <Link to="/" className="brand">EventHub</Link>
+      <nav>
+        <NavLink to="/">Events</NavLink>
+        {user && <NavLink to="/my-bookings">My bookings</NavLink>}
+        {user?.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
+        {user ? (
+          <>
+            <span className="muted">Hi, {user.name}</span>
+            <button className="btn btn-outline" onClick={handleLogout}>Log out</button>
+          </>
+        ) : (
+          <>
+            <NavLink to="/login">Log in</NavLink>
+            <Link to="/register" className="btn">Sign up</Link>
+          </>
+        )}
+      </nav>
+    </header>
+  );
+}
