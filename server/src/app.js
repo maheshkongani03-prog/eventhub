@@ -6,8 +6,11 @@ import eventRoutes from './routes/events.js';
 import bookingRoutes from './routes/bookings.js';
 
 const app = express();
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',')
+  : true;
 
-app.use(cors());
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/events', eventRoutes);
