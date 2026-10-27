@@ -1,4 +1,5 @@
-import { sendBookingConfirmation } from '../services/email.js';
+import { sendBookingConfirmation,sendBookingCancellation } from '../services/email.js';
+
 import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
@@ -34,6 +35,31 @@ async function sendConfirmationInBackground(userId, eventId, booking) {
     });
   } catch (err) {
     console.error('Confirmation email failed:', err.message);
+  }
+}
+
+async function sendCancellationInBackground(userId, eventId, booking) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.name, u.email, e.title, e.venue, e.starts_at
+       FROM users u, events e
+       WHERE u.id = $1 AND e.id = $2`,
+      [userId, eventId]
+    );
+    if (!rows[0]) return;
+    const info = rows[0];
+    await sendBookingCancellation({
+      to: info.email,
+      name: info.name,
+      title: info.title,
+      venue: info.venue,
+      startsAt: info.starts_at,
+      quantity: booking.quantity,
+      total: booking.total_amount,
+      bookingId: booking.id,
+    });
+  } catch (err) {
+    console.error('Cancellation email failed:', err.message);
   }
 }
 
@@ -114,6 +140,7 @@ router.get('/me', requireAuth, async (req, res) => {
 });
 
 // Cancel a booking (returns the seats)
+// Cancel a booking (returns the seats)
 router.post('/:id/cancel', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id < 1) {
@@ -128,7 +155,7 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
     const cancelled = await client.query(
       `UPDATE bookings SET status = 'cancelled'
        WHERE id = $1 AND user_id = $2 AND status = 'confirmed'
-       RETURNING event_id, quantity`,
+       RETURNING event_id, quantity, total_amount`,
       [id, req.user.id]
     );
 
@@ -142,7 +169,7 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
       return res.status(409).json({ error: 'Booking is already cancelled' });
     }
 
-    const { event_id, quantity } = cancelled.rows[0];
+    const { event_id, quantity, total_amount } = cancelled.rows[0];
     await client.query(
       'UPDATE events SET available_seats = available_seats + $1 WHERE id = $2',
       [quantity, event_id]
@@ -150,6 +177,7 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
 
     await client.query('COMMIT');
     res.json({ message: 'Booking cancelled' });
+    sendCancellationInBackground(req.user.id, event_id, { id, quantity, total_amount });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error(err);

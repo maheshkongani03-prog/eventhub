@@ -72,3 +72,36 @@ export async function sendBookingConfirmation({
     html,
   });
 }
+
+export async function sendBookingCancellation({
+  to, name, title, venue, startsAt, quantity, total, bookingId,
+}) {
+  const when = new Date(startsAt).toLocaleString('en-IN', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata',
+  });
+  const amount = Number(total) === 0 ? 'Free' : `₹${Number(total)}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1c2333;">
+      <h2 style="color: #dc2626;">Booking cancelled</h2>
+      <p>Hi ${escapeHtml(name)}, your booking has been cancelled and your seats have been released.</p>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr><td style="padding: 6px 0; color: #6b7385;">Event</td><td><strong>${escapeHtml(title)}</strong></td></tr>
+        <tr><td style="padding: 6px 0; color: #6b7385;">Venue</td><td>${escapeHtml(venue)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #6b7385;">When</td><td>${escapeHtml(when)} (IST)</td></tr>
+        <tr><td style="padding: 6px 0; color: #6b7385;">Tickets</td><td>${Number(quantity)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #6b7385;">Amount</td><td>${escapeHtml(amount)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #6b7385;">Booking ID</td><td>#${Number(bookingId)}</td></tr>
+      </table>
+      <p style="color: #6b7385; font-size: 13px;">You can book again any time on EventHub.</p>
+    </div>`;
+
+  await sendEmail({
+    to,
+    toName: name,
+    subject: `Booking cancelled: ${title}`,
+    html,
+  });
+}
