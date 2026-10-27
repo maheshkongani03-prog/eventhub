@@ -1,3 +1,4 @@
+import { sendBookingConfirmation } from '../services/email.js';
 import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
@@ -9,6 +10,32 @@ const bookSchema = z.object({
   event_id: z.coerce.number().int().positive(),
   quantity: z.coerce.number().int().min(1).max(10),
 });
+
+// Sends the confirmation email in the background; a failed email never fails the booking
+async function sendConfirmationInBackground(userId, eventId, booking) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.name, u.email, e.title, e.venue, e.starts_at
+       FROM users u, events e
+       WHERE u.id = $1 AND e.id = $2`,
+      [userId, eventId]
+    );
+    if (!rows[0]) return;
+    const info = rows[0];
+    await sendBookingConfirmation({
+      to: info.email,
+      name: info.name,
+      title: info.title,
+      venue: info.venue,
+      startsAt: info.starts_at,
+      quantity: booking.quantity,
+      total: booking.total_amount,
+      bookingId: booking.id,
+    });
+  } catch (err) {
+    console.error('Confirmation email failed:', err.message);
+  }
+}
 
 // Book tickets (atomic: no overselling)
 router.post('/', requireAuth, async (req, res) => {
@@ -57,6 +84,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     await client.query('COMMIT');
     res.status(201).json({ booking: rows[0] });
+    sendConfirmationInBackground(req.user.id, event_id, rows[0]);
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error(err);
