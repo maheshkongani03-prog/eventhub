@@ -29,6 +29,12 @@ export default function App() {
           <Route path="*" element={<p>Page not found.</p>} />
         </Routes>
       </main>
+      <footer className="footer">
+        Built by Mahesh Kongani with React, Node.js and PostgreSQL.{' '}
+        <a href="https://github.com/maheshkongani03-prog/eventhub" target="_blank" rel="noreferrer">
+          Source on GitHub
+        </a>
+      </footer>
     </>
   );
 }

@@ -5,6 +5,16 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
+const COLUMNS =
+  'id, title, description, venue, starts_at, price, total_seats, available_seats, image_url';
+
+const imageUrlSchema = z
+  .union([
+    z.literal(''),
+    z.string().trim().max(500).regex(/^https:\/\//i, 'Image URL must start with https://'),
+  ])
+  .optional();
+
 const listQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -19,6 +29,7 @@ const createSchema = z.object({
   starts_at: z.coerce.date(),
   price: z.coerce.number().min(0).max(100000).default(0),
   total_seats: z.coerce.number().int().min(1).max(100000),
+  image_url: imageUrlSchema,
 });
 
 const updateSchema = createSchema.partial();
@@ -56,7 +67,7 @@ router.get('/', async (req, res) => {
     const total = countResult.rows[0].total;
 
     const dataResult = await pool.query(
-      `SELECT id, title, description, venue, starts_at, price, total_seats, available_seats
+      `SELECT ${COLUMNS}
        FROM events ${where}
        ORDER BY starts_at ASC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
@@ -83,8 +94,7 @@ router.get('/:id', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, title, description, venue, starts_at, price, total_seats, available_seats
-       FROM events WHERE id = $1`,
+      `SELECT ${COLUMNS} FROM events WHERE id = $1`,
       [id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Event not found' });
@@ -101,15 +111,15 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid input', details: parsed.error.issues });
   }
-  const { title, description, venue, starts_at, price, total_seats } = parsed.data;
+  const { title, description, venue, starts_at, price, total_seats, image_url } = parsed.data;
 
   try {
     const { rows } = await pool.query(
       `INSERT INTO events
-         (title, description, venue, starts_at, price, total_seats, available_seats, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $6, $7)
+         (title, description, venue, starts_at, price, total_seats, available_seats, created_by, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8)
        RETURNING *`,
-      [title, description ?? null, venue, starts_at, price, total_seats, req.user.id]
+      [title, description ?? null, venue, starts_at, price, total_seats, req.user.id, image_url || null]
     );
     res.status(201).json({ event: rows[0] });
   } catch (err) {
@@ -137,12 +147,22 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
          venue = COALESCE($3, venue),
          starts_at = COALESCE($4, starts_at),
          price = COALESCE($5, price),
+         image_url = CASE WHEN $8::boolean THEN $9::text ELSE image_url END,
          available_seats = available_seats + (COALESCE($6, total_seats) - total_seats),
          total_seats = COALESCE($6, total_seats)
        WHERE id = $7
        RETURNING *`,
-      [d.title ?? null, d.description ?? null, d.venue ?? null, d.starts_at ?? null,
-       d.price ?? null, d.total_seats ?? null, id]
+      [
+        d.title ?? null,
+        d.description ?? null,
+        d.venue ?? null,
+        d.starts_at ?? null,
+        d.price ?? null,
+        d.total_seats ?? null,
+        id,
+        d.image_url !== undefined,
+        d.image_url || null,
+      ]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Event not found' });
     res.json({ event: rows[0] });

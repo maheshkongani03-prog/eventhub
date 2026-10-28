@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
+import AuthShell from '../components/AuthShell.jsx';
 
 export default function Register() {
   const { register } = useAuth();
@@ -26,22 +27,23 @@ export default function Register() {
   }
 
   return (
-    <div className="card form-card">
-      <h1>Create account</h1>
+    <AuthShell title="Create your account" subtitle="Sign up to book seats at upcoming events.">
       {error && <p className="error">{error}</p>}
       <form onSubmit={handleSubmit}>
-        <label>Name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} required />
-        <label>Email</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <label>Password (min 8 characters)</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
-        <br /><br />
+        <label htmlFor="name">Full name</label>
+        <input id="name" autoComplete="name" value={name}
+          onChange={(e) => setName(e.target.value)} required />
+        <label htmlFor="email">Email</label>
+        <input id="email" type="email" autoComplete="email" placeholder="you@example.com"
+          value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <label htmlFor="password">Password</label>
+        <input id="password" type="password" autoComplete="new-password" minLength={8}
+          value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <p className="muted hint">At least 8 characters.</p>
         <button className="btn" type="submit" disabled={submitting}>
-          {submitting ? 'Creating...' : 'Sign up'}
+          {submitting ? 'Creating account...' : 'Create account'}
         </button>
       </form>
-      <p className="muted">Already have an account? <Link to="/login">Log in</Link></p>
-    </div>
+    </AuthShell>
   );
 }

@@ -1,6 +1,7 @@
-    import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
+import AuthShell from '../components/AuthShell.jsx';
 
 export default function Login() {
   const { login } = useAuth();
@@ -25,20 +26,19 @@ export default function Login() {
   }
 
   return (
-    <div className="card form-card">
-      <h1>Log in</h1>
+    <AuthShell title="Welcome back" subtitle="Log in to book seats and manage your tickets.">
       {error && <p className="error">{error}</p>}
       <form onSubmit={handleSubmit}>
-        <label>Email</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <label>Password</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <br /><br />
+        <label htmlFor="email">Email</label>
+        <input id="email" type="email" autoComplete="email" placeholder="you@example.com"
+          value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <label htmlFor="password">Password</label>
+        <input id="password" type="password" autoComplete="current-password"
+          value={password} onChange={(e) => setPassword(e.target.value)} required />
         <button className="btn" type="submit" disabled={submitting}>
           {submitting ? 'Logging in...' : 'Log in'}
         </button>
       </form>
-      <p className="muted">No account? <Link to="/register">Sign up</Link></p>
-    </div>
+    </AuthShell>
   );
 }

@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../AuthContext.jsx';
-
-function formatDate(iso) {
-  return new Date(iso).toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'short' });
-}
+import { eventImage, hideBroken } from '../images.js';
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -49,7 +46,7 @@ export default function EventDetail() {
         token,
         body: { event_id: event.id, quantity: Number(quantity) },
       });
-      setMessage('Booking confirmed! You can see it under "My bookings".');
+      setMessage('Booked. A confirmation email is on its way.');
       setQuantity(1);
     } catch (err) {
       setError(err.message);
@@ -62,45 +59,69 @@ export default function EventDetail() {
   if (loading) return <p className="muted">Loading...</p>;
   if (!event) return <p className="error">{error || 'Event not found'}</p>;
 
-  const started = new Date(event.starts_at) <= new Date();
+  const d = new Date(event.starts_at);
+  const dateText = d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const timeText = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+
+  const started = d <= new Date();
   const soldOut = event.available_seats === 0;
   const free = Number(event.price) === 0;
   const maxQty = Math.min(10, event.available_seats);
+  const qty = Number(quantity);
+  const total = Number(event.price) * qty;
 
   return (
-    <div className="card detail stack">
-      <h1>{event.title}</h1>
-      <div className="muted">{event.venue}</div>
-      <div className="muted">{formatDate(event.starts_at)}</div>
-      <div>
-        <span className="badge">{free ? 'Free' : `₹${Number(event.price)} per ticket`}</span>{' '}
-        <span className={`badge ${soldOut ? 'badge-red' : 'badge-green'}`}>
-          {soldOut ? 'Sold out' : `${event.available_seats} of ${event.total_seats} seats left`}
-        </span>
+    <div>
+      <Link to="/" className="back">Back to events</Link>
+
+      <div className="detail-hero">
+        <img src={eventImage(event, 1400, 600)} alt="" onError={hideBroken} />
       </div>
-      {event.description && <p>{event.description}</p>}
 
-      {error && <p className="error">{error}</p>}
-      {message && <p className="success">{message}</p>}
+      <div className="detail-layout">
+        <div className="detail-main">
+          <h1>{event.title}</h1>
+          <dl className="facts">
+            <div><dt>Venue</dt><dd>{event.venue}</dd></div>
+            <div><dt>Date</dt><dd>{dateText}</dd></div>
+            <div><dt>Time</dt><dd>{timeText}</dd></div>
+            <div><dt>Seats</dt><dd>{soldOut ? 'Sold out' : `${event.available_seats} of ${event.total_seats} left`}</dd></div>
+          </dl>
+          {event.description && <p>{event.description}</p>}
+        </div>
 
-      {started ? (
-        <p className="muted">This event has already started.</p>
-      ) : soldOut ? (
-        <p className="muted">Sorry, this event is sold out.</p>
-      ) : (
-        <form onSubmit={handleBook}>
-          <label>Number of tickets</label>
-          <select value={quantity} onChange={(e) => setQuantity(e.target.value)}>
-            {Array.from({ length: maxQty }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-          <p className="muted">Total: {free ? 'Free' : `₹${Number(event.price) * Number(quantity)}`}</p>
-          <button className="btn" type="submit" disabled={booking}>
-            {booking ? 'Booking...' : user ? 'Book now' : 'Log in to book'}
-          </button>
-        </form>
-      )}
+        <aside className="book-panel">
+          <h2>{free ? 'Free entry' : `₹${Number(event.price)} per ticket`}</h2>
+          {error && <p className="error">{error}</p>}
+          {message && <p className="success">{message}</p>}
+
+          {started ? (
+            <p className="muted">This event has already started.</p>
+          ) : soldOut ? (
+            <p className="muted">This event is sold out.</p>
+          ) : (
+            <form onSubmit={handleBook}>
+              <label htmlFor="qty">Tickets</label>
+              <select id="qty" value={quantity} onChange={(e) => setQuantity(e.target.value)}>
+                {Array.from({ length: maxQty }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <div className="total">
+                <span>Total</span>
+                <span>{free ? 'Free' : `₹${total}`}</span>
+              </div>
+              <button className="btn" type="submit" disabled={booking}>
+                {booking
+                  ? 'Booking...'
+                  : user
+                    ? `Book ${qty} ${qty === 1 ? 'ticket' : 'tickets'}`
+                    : 'Log in to book'}
+              </button>
+            </form>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }

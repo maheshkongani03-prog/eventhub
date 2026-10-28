@@ -14,18 +14,18 @@ export default function Navbar() {
     <header className="navbar">
       <Link to="/" className="brand">EventHub</Link>
       <nav>
-        <NavLink to="/">Events</NavLink>
+        <NavLink to="/" end>Events</NavLink>
         {user && <NavLink to="/my-bookings">My bookings</NavLink>}
         {user?.role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
         {user ? (
           <>
-            <span className="muted">Hi, {user.name}</span>
-            <button className="btn btn-outline" onClick={handleLogout}>Log out</button>
+            <span className="nav-user">{user.name.split(' ')[0]}</span>
+            <button className="btn btn-outline btn-sm" onClick={handleLogout}>Log out</button>
           </>
         ) : (
           <>
             <NavLink to="/login">Log in</NavLink>
-            <Link to="/register" className="btn">Sign up</Link>
+            <Link to="/register" className="btn btn-marigold btn-sm">Sign up</Link>
           </>
         )}
       </nav>

@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../AuthContext.jsx';
+import { eventImage, hideBroken } from '../images.js';
 
-const emptyForm = { title: '', venue: '', description: '', starts_at: '', price: 0, total_seats: 50 };
+const emptyForm = {
+  title: '',
+  venue: '',
+  description: '',
+  image_url: '',
+  starts_at: '',
+  price: 0,
+  total_seats: 50,
+};
 
 function toLocalInput(iso) {
   const d = new Date(iso);
@@ -46,6 +55,7 @@ export default function Admin() {
       title: ev.title,
       venue: ev.venue,
       description: ev.description || '',
+      image_url: ev.image_url || '',
       starts_at: toLocalInput(ev.starts_at),
       price: Number(ev.price),
       total_seats: ev.total_seats,
@@ -70,6 +80,7 @@ export default function Admin() {
         title: form.title,
         venue: form.venue,
         description: form.description,
+        image_url: form.image_url.trim(),
         starts_at: new Date(form.starts_at).toISOString(),
         price: Number(form.price),
         total_seats: Number(form.total_seats),
@@ -105,7 +116,7 @@ export default function Admin() {
 
   return (
     <div className="stack">
-      <h1>Admin: manage events</h1>
+      <h1>Manage events</h1>
       {error && <p className="error">{error}</p>}
       {message && <p className="success">{message}</p>}
 
@@ -118,6 +129,14 @@ export default function Admin() {
           <input value={form.venue} onChange={(e) => updateField('venue', e.target.value)} required />
           <label>Description</label>
           <textarea rows={3} value={form.description} onChange={(e) => updateField('description', e.target.value)} />
+          <label>Image URL</label>
+          <input
+            type="url"
+            placeholder="https://images.unsplash.com/..."
+            value={form.image_url}
+            onChange={(e) => updateField('image_url', e.target.value)}
+          />
+          <p className="muted hint">Must start with https://. Leave it empty to use a placeholder photo.</p>
           <div className="row">
             <div>
               <label>Date and time</label>
@@ -149,15 +168,17 @@ export default function Admin() {
         {events.length === 0 && <p className="muted">No events yet.</p>}
         {events.map((ev) => (
           <div className="list-item" key={ev.id}>
-            <div>
-              <strong>{ev.title}</strong>
-              <div className="muted">
-                {ev.venue} · {formatDate(ev.starts_at)} · {ev.available_seats}/{ev.total_seats} seats left
+            <div className="item-left">
+              <img className="thumb" src={eventImage(ev, 120, 120)} alt="" onError={hideBroken} />
+              <div>
+                <strong>{ev.title}</strong>
+                <div className="muted">{ev.venue}</div>
+                <div className="muted">{formatDate(ev.starts_at)}, {ev.available_seats}/{ev.total_seats} seats left</div>
               </div>
             </div>
             <div className="actions">
-              <button className="btn btn-outline" onClick={() => startEdit(ev)}>Edit</button>
-              <button className="btn btn-danger" onClick={() => handleDelete(ev.id)}>Delete</button>
+              <button className="btn btn-outline btn-sm" onClick={() => startEdit(ev)}>Edit</button>
+              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(ev.id)}>Delete</button>
             </div>
           </div>
         ))}

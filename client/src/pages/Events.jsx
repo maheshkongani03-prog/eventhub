@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
+import { eventImage, hideBroken } from '../images.js';
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+function formatParts(iso) {
+  const d = new Date(iso);
+  return {
+    date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+    time: d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }),
+  };
 }
 
 export default function Events() {
@@ -13,6 +18,7 @@ export default function Events() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [slow, setSlow] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -20,7 +26,7 @@ export default function Events() {
     setLoading(true);
     setError('');
 
-    const params = new URLSearchParams({ page, limit: 6, upcoming: 'true' });
+    const params = new URLSearchParams({ page, limit: 9, upcoming: 'true' });
     if (search) params.set('search', search);
 
     api(`/events?${params}`)
@@ -41,6 +47,15 @@ export default function Events() {
     };
   }, [page, search]);
 
+  useEffect(() => {
+    if (!loading) return undefined;
+    const timer = setTimeout(() => setSlow(true), 4000);
+    return () => {
+      clearTimeout(timer);
+      setSlow(false);
+    };
+  }, [loading]);
+
   function handleSearch(e) {
     e.preventDefault();
     setPage(1);
@@ -49,49 +64,64 @@ export default function Events() {
 
   return (
     <div>
-      <h1>Upcoming events</h1>
-
-      <form className="search-bar" onSubmit={handleSearch}>
-        <input
-          placeholder="Search by title or venue..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
-        <button className="btn" type="submit">Search</button>
-      </form>
+      <section className="hero">
+        <h1>What's on</h1>
+        <p>Meetups, workshops and talks. Pick one and grab your seats.</p>
+        <form className="search-bar" onSubmit={handleSearch}>
+          <input
+            placeholder="Search by event or venue"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            aria-label="Search events"
+          />
+          <button className="btn" type="submit">Search</button>
+        </form>
+      </section>
 
       {error && <p className="error">{error}</p>}
-      {loading && <p className="muted">Loading events...</p>}
-      {!loading && !error && events.length === 0 && <p className="muted">No events found.</p>}
+      {loading && (
+        <p className="muted">
+          {slow
+            ? 'Waking up the server. The first load can take up to a minute.'
+            : 'Loading events...'}
+        </p>
+      )}
+      {!loading && !error && events.length === 0 && (
+        <p className="muted">No events match that search. Try a shorter keyword.</p>
+      )}
 
       <div className="grid">
         {events.map((ev) => {
+          const { date, time } = formatParts(ev.starts_at);
           const soldOut = ev.available_seats === 0;
+          const low = !soldOut && ev.available_seats / ev.total_seats <= 0.2;
           const free = Number(ev.price) === 0;
+
           return (
-            <div className="card event-card" key={ev.id}>
-              <h3>{ev.title}</h3>
-              <span className="muted">{ev.venue}</span>
-              <span className="muted">{formatDate(ev.starts_at)}</span>
-              <div>
-                <span className="badge">{free ? 'Free' : `₹${Number(ev.price)}`}</span>{' '}
-                <span className={`badge ${soldOut ? 'badge-red' : 'badge-green'}`}>
-                  {soldOut ? 'Sold out' : `${ev.available_seats} seats left`}
-                </span>
+            <Link to={`/events/${ev.id}`} className={`poster ${soldOut ? 'soldout' : ''}`} key={ev.id}>
+              <img src={eventImage(ev)} alt="" loading="lazy" onError={hideBroken} />
+              <span className="chip chip-date">{date}</span>
+              <span className={`chip chip-seats ${low || soldOut ? 'low' : ''}`}>
+                {soldOut ? 'Sold out' : low ? `Only ${ev.available_seats} left` : `${ev.available_seats} seats left`}
+              </span>
+              <div className="poster-panel">
+                <h3>{ev.title}</h3>
+                <span className="line">{ev.venue}</span>
+                <span className="line">{time}</span>
+                <span className="price">{free ? 'Free' : `₹${Number(ev.price)}`}</span>
               </div>
-              <Link to={`/events/${ev.id}`} className="btn btn-outline">View details</Link>
-            </div>
+            </Link>
           );
         })}
       </div>
 
       {totalPages > 1 && (
         <div className="pagination">
-          <button className="btn btn-outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+          <button className="btn btn-outline btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
             Previous
           </button>
           <span className="muted">Page {page} of {totalPages}</span>
-          <button className="btn btn-outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+          <button className="btn btn-outline btn-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
             Next
           </button>
         </div>
