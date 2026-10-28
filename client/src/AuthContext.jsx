@@ -28,13 +28,25 @@ export function AuthProvider({ children }) {
     save({ user: data.user, token: data.token });
   }
 
+  async function loginWithGoogle(credential) {
+    const data = await api('/auth/google', { method: 'POST', body: { credential } });
+    save({ user: data.user, token: data.token });
+  }
+
   function logout() {
     save(null);
   }
 
   return (
     <AuthContext.Provider
-      value={{ user: auth?.user ?? null, token: auth?.token ?? null, login, register, logout }}
+      value={{
+        user: auth?.user ?? null,
+        token: auth?.token ?? null,
+        login,
+        register,
+        loginWithGoogle,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

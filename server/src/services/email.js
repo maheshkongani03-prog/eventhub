@@ -105,3 +105,24 @@ export async function sendBookingCancellation({
     html,
   });
 }
+
+export async function sendPasswordReset({ to, name, link }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1c2333;">
+      <h2>Reset your password</h2>
+      <p>Hi ${escapeHtml(name)}, we got a request to reset your EventHub password. This link works for 30 minutes.</p>
+      <p>
+        <a href="${escapeHtml(link)}" style="display: inline-block; background: #101727; color: #ffffff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+          Choose a new password
+        </a>
+      </p>
+      <p style="color: #6b7385; font-size: 13px;">If you didn't ask for this, ignore this email. Your password won't change.</p>
+    </div>`;
+
+  await sendEmail({
+    to,
+    toName: name,
+    subject: 'Reset your EventHub password',
+    html,
+  });
+}

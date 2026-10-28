@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
 import AuthShell from '../components/AuthShell.jsx';
 
@@ -35,6 +35,7 @@ export default function Login() {
         <label htmlFor="password">Password</label>
         <input id="password" type="password" autoComplete="current-password"
           value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <Link to="/forgot-password" className="forgot">Forgot password?</Link>
         <button className="btn" type="submit" disabled={submitting}>
           {submitting ? 'Logging in...' : 'Log in'}
         </button>
