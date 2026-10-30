@@ -35,10 +35,10 @@ export default function Privacy() {
       </p>
 
       <h2>Deleting your data</h2>
-      <p>Email YOUR_EMAIL from the address on your account and we will delete your account and bookings.</p>
+      <p>Email maheshkongani03@gmail.com from the address on your account and we will delete your account and bookings.</p>
 
       <h2>Contact</h2>
-      <p>YOUR_EMAIL</p>
+      <p>maheshkongani03@gmail.com</p>
     </div>
   );
 }
