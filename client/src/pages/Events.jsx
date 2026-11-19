@@ -65,8 +65,8 @@ export default function Events() {
   return (
     <div>
       <section className="hero">
-        <h1>What's on</h1>
-        <p>Meetups, workshops and talks. Pick one and grab your seats.</p>
+        <h1>Find your next event.</h1>
+        <p>Workshops, meetups and talks. Reserve a seat in seconds.</p>
         <form className="search-bar" onSubmit={handleSearch}>
           <input
             placeholder="Search by event or venue"
